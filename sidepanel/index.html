@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptGuard: AI Prompt Sanitizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Sticky Header -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">PromptGuard</div>
+      </div>
+    </div>
+    <div class="badge-secure" title="100% Client-side. Zero telemetry or network requests.">
+      <span class="pulse-dot"></span>
+      <span>Local &amp; Secure</span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tabs-container">
+    <button class="tab-btn active" data-tab="tab-sanitize">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      Sanitize
+    </button>
+    <button class="tab-btn" data-tab="tab-restore">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+        <path d="M21 3v5h-5"/>
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+        <path d="M8 16H3v5"/>
+      </svg>
+      Restore
+    </button>
+    <button class="tab-btn" data-tab="tab-vault">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect width="18" height="18" x="3" y="3" rx="2"/>
+        <path d="M7 7h.01M7 12h.01M7 17h.01M12 7h5M12 12h5M12 17h5"/>
+      </svg>
+      Vault
+    </button>
+    <button class="tab-btn" data-tab="tab-rules">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+      Rules
+    </button>
+  </nav>
+
+  <!-- Main Views Container -->
+  <main class="main-container">
+
+    <!-- 1. SANITIZE PANE -->
+    <section id="tab-sanitize" class="view-pane active">
+
+      <!-- Configuration Card -->
+      <div class="controls-row">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">MODE:</span>
+          <select id="sanitizeModeSelect" class="select-control">
+            <option value="mask" selected>🔄 Mask &amp; Replace (Reversible)</option>
+            <option value="strip">✂️ Total Strip (Permanent)</option>
+            <option value="mock">🎭 Synthetic Mock (Dummy Data)</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button id="grabTabBtn" class="btn btn-secondary btn-sm" title="Grab selected text from active Chrome tab">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Grab Active Tab
+          </button>
+          <button id="clearInputBtn" class="btn btn-secondary btn-sm" title="Clear input text">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Raw Input Section -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+            Raw Prompt / Code / .env
+          </span>
+          <span id="detectedFormatBadge" class="threat-pill" style="font-size: 10px; padding: 2px 6px;">Format: Plain</span>
+        </div>
+        <textarea id="rawInputText" class="code-textarea" placeholder="Paste your raw code, error stack traces, .env configurations, curl commands, or database connection strings here..."></textarea>
+      </div>
+
+      <!-- Action Button -->
+      <div>
+        <button id="sanitizeBtn" class="btn btn-primary" style="width: 100%; padding: 10px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Sanitize Prompt <span style="font-size: 11px; opacity: 0.85;">(⌘+Enter)</span>
+        </button>
+      </div>
+
+      <!-- Threat Detection Summary Dashboard -->
+      <div id="threatDashboard" class="threat-dashboard" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span id="threatCountTitle" style="font-weight: 700; font-size: 12px; color: #fbbf24;"></span>
+          <button id="toggleThreatDrawerBtn" class="btn btn-secondary btn-sm" style="font-size: 10px; padding: 2px 6px;">Details ▾</button>
+        </div>
+        <div id="threatPillsContainer" class="threat-pills-wrap"></div>
+        <div id="threatDrawer" class="threat-drawer" style="display: none;"></div>
+      </div>
+
+      <!-- Clean Output Section -->
+      <div id="outputCard" class="card" style="display: none;">
+        <div class="card-header">
+          <span class="card-title" style="color: #34d399;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Clean Sanitized Prompt
+          </span>
+          <span id="uniqueSecretsBadge" class="threat-pill emerald" style="font-size: 10px;"></span>
+        </div>
+        <textarea id="sanitizedOutputText" class="code-textarea" readonly></textarea>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <button id="copyCleanBtn" class="btn btn-primary" style="flex: 2;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </svg>
+            Copy Clean Prompt
+          </button>
+          <button id="sendToRestoreBtn" class="btn btn-secondary" style="flex: 1;" title="Prepare Restore view with this session's mapping">
+            → Restore Tab
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 2. RESTORE PANE -->
+    <section id="tab-restore" class="view-pane">
+      <div class="card" style="background: rgba(99, 102, 241, 0.08); border-color: rgba(99, 102, 241, 0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; font-weight: 600; color: #a5b4fc;">Active Session Mapping</span>
+          <span id="activeMappingCountBadge" class="threat-pill indigo">0 secrets loaded</span>
+        </div>
+        <p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">
+          Paste the code or explanation generated by ChatGPT, Claude, or Gemini containing placeholder tags (e.g. <code>[OPENAI_API_KEY_1]</code>). Click Restore to swap your original secrets back locally.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Paste AI Response</span>
+          <button id="pasteFromClipboardBtn" class="btn btn-secondary btn-sm">Paste</button>
+        </div>
+        <textarea id="aiResponseInputText" class="code-textarea" placeholder="Paste AI generated code with [PLACEHOLDER] tokens here..."></textarea>
+      </div>
+
+      <button id="restoreSecretsBtn" class="btn btn-indigo" style="width: 100%; padding: 10px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+          <path d="M21 3v5h-5"/>
+        </svg>
+        Restore Original Secrets Locally
+      </button>
+
+      <div id="restoredOutputCard" class="card" style="display: none;">
+        <div class="card-header">
+          <span class="card-title" style="color: #818cf8;">Restored Code</span>
+          <span id="restoredCountBadge" class="threat-pill indigo" style="font-size: 10px;"></span>
+        </div>
+        <textarea id="restoredOutputText" class="code-textarea"></textarea>
+        <div style="margin-top: 6px;">
+          <button id="copyRestoredBtn" class="btn btn-indigo" style="width: 100%;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </svg>
+            Copy Restored Code
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. VAULT / HISTORY PANE -->
+    <section id="tab-vault" class="view-pane">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Recent Sanitizations</span>
+        <button id="shredVaultBtn" class="btn btn-danger btn-sm">
+          💣 Shred All History
+        </button>
+      </div>
+      <div id="vaultListContainer" style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 20px;">
+          No previous sessions in this vault.
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. RULES & SETTINGS PANE -->
+    <section id="tab-rules" class="view-pane">
+      <div class="card">
+        <span class="card-title">Detection Categories</span>
+        <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+          Toggle sensitive categories you want PromptGuard to actively sanitize:
+        </p>
+        <div class="category-checkbox-grid">
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="ai" checked>
+            <span>🤖 AI &amp; LLM Keys</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="cloud" checked>
+            <span>☁️ Cloud (AWS, Azure, DO)</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="vcs" checked>
+            <span>🐙 VCS (GitHub, GitLab)</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="crypto" checked>
+            <span>🔑 Private Keys &amp; PEM</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="database" checked>
+            <span>🗄️ Database URIs</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="auth" checked>
+            <span>🛡️ JWT &amp; Bearer Tokens</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="communication" checked>
+            <span>💬 Slack &amp; Discord</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="payment" checked>
+            <span>💳 Stripe &amp; Financial</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="pii" checked>
+            <span>👤 PII (Email, Phone, SSN)</span>
+          </label>
+          <label class="category-checkbox-label">
+            <input type="checkbox" class="cat-checkbox" value="generic" checked>
+            <span>⚙️ Generic .env Secrets</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Custom Regex Rule Adder -->
+      <div class="card">
+        <span class="card-title">Add Custom Regex Rule</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+          <input id="customRuleName" type="text" placeholder="Rule Name (e.g. Acme Internal Token)" class="code-textarea" style="min-height: 32px; height: 32px; padding: 6px 10px;">
+          <input id="customRulePrefix" type="text" placeholder="Placeholder Prefix (e.g. ACME_TOKEN)" class="code-textarea" style="min-height: 32px; height: 32px; padding: 6px 10px;">
+          <input id="customRulePattern" type="text" placeholder="Regex Pattern (e.g. ACME-[A-Z0-9]{16})" class="code-textarea" style="min-height: 32px; height: 32px; padding: 6px 10px;">
+          <button id="addCustomRuleBtn" class="btn btn-secondary btn-sm" style="align-self: flex-start;">
+            + Save Custom Rule
+          </button>
+        </div>
+        <div id="customRulesList" style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating Toast Notification -->
+  <div id="toastNotification" class="toast">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    <span id="toastMessage">Clean prompt copied to clipboard!</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../utils/sanitizer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
