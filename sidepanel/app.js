@@ -1,17 +1,24 @@
 /**
  * PromptGuard: AI Prompt Sanitizer
- * sidepanel/app.js - Side Panel UI Controller & State Manager
- * 100% Client-side. Local-first execution.
+ * sidepanel/app.js - Side Panel UI Controller, Quota & Payment Integration
+ * 3 Free Daily Sanitizations + $2 Lifetime Subscription
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const sanitizer = window.PromptGuardSanitizer;
+  const licensing = window.PromptGuardLicensing;
 
   // In-memory state
   let currentSessionMapping = {};
   let currentThreatMatches = [];
   let customRules = [];
   let enabledCategories = ['ai', 'cloud', 'vcs', 'crypto', 'database', 'auth', 'communication', 'payment', 'pii', 'generic'];
+
+  // DOM Elements - Header & Quota
+  const tierBadge = document.getElementById('tierBadge');
+  const openUpgradeModalBtn = document.getElementById('openUpgradeModalBtn');
+  const quotaLimitBanner = document.getElementById('quotaLimitBanner');
+  const bannerUpgradeBtn = document.getElementById('bannerUpgradeBtn');
 
   // DOM Elements - Tabs
   const tabButtons = document.querySelectorAll('.tab-btn');
@@ -21,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const rawInputText = document.getElementById('rawInputText');
   const sanitizeModeSelect = document.getElementById('sanitizeModeSelect');
   const sanitizeBtn = document.getElementById('sanitizeBtn');
+  const sanitizeBtnLabel = document.getElementById('sanitizeBtnLabel');
   const clearInputBtn = document.getElementById('clearInputBtn');
   const grabTabBtn = document.getElementById('grabTabBtn');
   const detectedFormatBadge = document.getElementById('detectedFormatBadge');
@@ -35,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyCleanBtn = document.getElementById('copyCleanBtn');
   const sendToRestoreBtn = document.getElementById('sendToRestoreBtn');
 
-  // DOM Elements - Restore Pane
+  // DOM Elements - Restore Pane (Free & Unlimited)
   const activeMappingCountBadge = document.getElementById('activeMappingCountBadge');
   const aiResponseInputText = document.getElementById('aiResponseInputText');
   const pasteFromClipboardBtn = document.getElementById('pasteFromClipboardBtn');
@@ -56,19 +64,81 @@ document.addEventListener('DOMContentLoaded', () => {
   const customRulePattern = document.getElementById('customRulePattern');
   const addCustomRuleBtn = document.getElementById('addCustomRuleBtn');
   const customRulesList = document.getElementById('customRulesList');
+  const testActivateProBtn = document.getElementById('testActivateProBtn');
+  const testResetQuotaBtn = document.getElementById('testResetQuotaBtn');
+
+  // DOM Elements - Upgrade / Paywall Modal & Views
+  const upgradeModal = document.getElementById('upgradeModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalFreeView = document.getElementById('modalFreeView');
+  const modalProView = document.getElementById('modalProView');
+  const proActiveKeyDisplay = document.getElementById('proActiveKeyDisplay');
+  const proMachineIdDisplay = document.getElementById('proMachineIdDisplay');
+  const deactivateLicenseBtn = document.getElementById('deactivateLicenseBtn');
+  const closeUpgradeModalBtn = document.getElementById('closeUpgradeModalBtn');
+  const buyLifetimeBtn = document.getElementById('buyLifetimeBtn');
+  const licenseKeyInput = document.getElementById('licenseKeyInput');
+  const activateLicenseBtn = document.getElementById('activateLicenseBtn');
+  const licenseActivationMsg = document.getElementById('licenseActivationMsg');
 
   // DOM Elements - Toast
   const toastNotification = document.getElementById('toastNotification');
   const toastMessage = document.getElementById('toastMessage');
 
   // Helper: Display floating toast feedback
-  function showToast(message, duration = 2400) {
+  function showToast(message, duration = 2600) {
     if (!toastNotification || !toastMessage) return;
     toastMessage.textContent = message;
     toastNotification.classList.add('show');
     setTimeout(() => {
       toastNotification.classList.remove('show');
     }, duration);
+  }
+
+  // --- QUOTA & LICENSING UI UPDATE ---
+  function updateQuotaDisplay() {
+    if (!licensing) return;
+    const state = licensing.getState();
+
+    if (state.isPro) {
+      // PRO PLAN: Remove all "Buy Pro" buttons and upgrade prompts!
+      tierBadge.className = 'badge-tier badge-tier-pro';
+      tierBadge.innerHTML = '<span>⭐ PRO Lifetime (Active)</span>';
+      tierBadge.title = 'Pro Lifetime Active. Click to view account & seat details.';
+      
+      // Hide the "Buy Pro / $2 Lifetime" button completely
+      openUpgradeModalBtn.style.display = 'none';
+
+      // Hide any quota warning banner
+      if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
+
+      sanitizeBtnLabel.textContent = 'Sanitize Prompt (Pro Unlimited)';
+    } else {
+      // FREE TIER: Show remaining free credits and upgrade pill
+      const rem = state.remainingToday;
+      openUpgradeModalBtn.style.display = 'inline-flex';
+      openUpgradeModalBtn.textContent = '⭐ $2 Lifetime';
+
+      if (rem > 1) {
+        tierBadge.className = 'badge-tier badge-tier-free';
+        tierBadge.innerHTML = `<span>⚡ ${rem}/3 Free Today</span>`;
+        tierBadge.title = 'Daily free credits reset every midnight. Click to upgrade.';
+        if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
+        sanitizeBtnLabel.textContent = 'Sanitize Prompt';
+      } else if (rem === 1) {
+        tierBadge.className = 'badge-tier badge-tier-warning';
+        tierBadge.innerHTML = `<span>⚡ 1/3 Free Left</span>`;
+        tierBadge.title = '1 credit left today. Resets at midnight.';
+        if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
+        sanitizeBtnLabel.textContent = 'Sanitize (1 Left)';
+      } else {
+        tierBadge.className = 'badge-tier badge-tier-danger';
+        tierBadge.innerHTML = `<span>⚡ 0/3 Free (Upgrade $2)</span>`;
+        tierBadge.title = 'Daily limit reached. Click to get Lifetime Pro for $2.';
+        if (quotaLimitBanner) quotaLimitBanner.style.display = 'flex';
+        sanitizeBtnLabel.textContent = 'Upgrade to Sanitize ($2)';
+      }
+    }
   }
 
   // --- TAB NAVIGATION ---
@@ -88,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Switch to tab programmatically
   function switchToTab(tabId) {
     const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
     if (btn) btn.click();
@@ -111,12 +180,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- SANITIZE PIPELINE ---
+  // --- SANITIZE PIPELINE WITH QUOTA CHECK ---
   function runSanitization() {
     const rawText = rawInputText.value;
     if (!rawText.trim()) {
       showToast('⚠️ Please enter or paste some text first');
       return;
+    }
+
+    // 1. Quota Check: 3 Free per day or Lifetime Pro
+    if (licensing && !licensing.canSanitize()) {
+      openUpgradeModal();
+      showToast('⚠️ Daily limit reached (3/3). Get Lifetime Pro for $2!');
+      return;
+    }
+
+    // 2. Consume credit
+    if (licensing) {
+      const creditRes = licensing.consumeCredit();
+      if (!creditRes.allowed) {
+        openUpgradeModal();
+        return;
+      }
+      updateQuotaDisplay();
     }
 
     const mode = sanitizeModeSelect.value;
@@ -141,10 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render Threat Dashboard
     renderThreatDashboard(result);
 
-    // Save to chrome.storage.session and vault history
+    // Save to storage
     saveSessionToStorage(rawText, result);
 
-    showToast(`✓ Sanitized ${result.stats.totalThreats} threats successfully!`);
+    const state = licensing ? licensing.getState() : null;
+    if (state && !state.isPro) {
+      showToast(`✓ Sanitized ${result.stats.totalThreats} threats! (${state.remainingToday} free left today)`);
+    } else {
+      showToast(`✓ Sanitized ${result.stats.totalThreats} threats (Pro Unlimited)!`);
+    }
   }
 
   sanitizeBtn.addEventListener('click', runSanitization);
@@ -169,7 +260,6 @@ document.addEventListener('DOMContentLoaded', () => {
     threatCountTitle.style.color = '#fbbf24';
     toggleThreatDrawerBtn.style.display = 'block';
 
-    // Threat Breakdown Pills
     threatPillsContainer.innerHTML = '';
     for (const [name, count] of Object.entries(result.threatBreakdown)) {
       const pill = document.createElement('span');
@@ -178,7 +268,6 @@ document.addEventListener('DOMContentLoaded', () => {
       threatPillsContainer.appendChild(pill);
     }
 
-    // Detail rows in drawer
     threatDrawer.innerHTML = '';
     if (result.detectedMatches && result.detectedMatches.length > 0) {
       result.detectedMatches.forEach(item => {
@@ -193,7 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Toggle threat details drawer
   toggleThreatDrawerBtn.addEventListener('click', () => {
     if (threatDrawer.style.display === 'none') {
       threatDrawer.style.display = 'flex';
@@ -204,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- CLIPBOARD ACTIONS ---
+  // --- CLIPBOARD ACTIONS (FREE & UNLIMITED) ---
   copyCleanBtn.addEventListener('click', async () => {
     const text = sanitizedOutputText.value;
     if (!text) return;
@@ -212,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
       await navigator.clipboard.writeText(text);
       showToast('✓ Clean prompt copied to clipboard!');
     } catch (err) {
-      // Fallback
       sanitizedOutputText.select();
       document.execCommand('copy');
       showToast('✓ Clean prompt copied!');
@@ -233,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     aiResponseInputText.focus();
   });
 
-  // --- RESTORE PIPELINE ---
+  // --- RESTORE PIPELINE (100% FREE & UNLIMITED) ---
   function updateActiveMappingCount() {
     const count = Object.keys(currentSessionMapping).length;
     activeMappingCountBadge.textContent = `${count} secret${count === 1 ? '' : 's'} loaded`;
@@ -261,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Restoration is always free and unrestricted
     const { restoredText, restoredCount, unmappedPlaceholders } = sanitizer.restoreText(aiText, currentSessionMapping);
 
     restoredOutputText.value = restoredText;
@@ -270,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (unmappedPlaceholders.length > 0) {
       showToast(`⚠️ Restored ${restoredCount} secrets. Notice: ${unmappedPlaceholders.length} unrecognized tags.`);
     } else {
-      showToast(`✓ Successfully restored ${restoredCount} secrets!`);
+      showToast(`✓ Successfully restored ${restoredCount} secrets (Free)!`);
     }
   });
 
@@ -297,7 +385,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const tab = tabs[0];
-        // Execute script to get active window text selection
         if (chrome.scripting && chrome.scripting.executeScript) {
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
@@ -321,18 +408,174 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // --- MODAL & ACCOUNT STATUS HANDLERS ---
+  function openUpgradeModal() {
+    if (!upgradeModal) return;
+    const state = licensing ? licensing.getState() : { isPro: false };
+
+    if (state.isPro) {
+      // PRO VIEW: Shows active subscription, machine ID & multi-profile info
+      modalTitle.textContent = 'Account Status: Pro Lifetime';
+      modalFreeView.style.display = 'none';
+      modalProView.style.display = 'flex';
+      proActiveKeyDisplay.textContent = state.maskedKey || 'PG-PRO-ACTIVE';
+      proMachineIdDisplay.textContent = state.machineId || 'PC-CURRENT';
+    } else {
+      // FREE VIEW: Shows $2 Lifetime Deal + Checkout & Key Activation
+      modalTitle.textContent = 'Unlock PromptGuard Pro Lifetime';
+      modalFreeView.style.display = 'flex';
+      modalProView.style.display = 'none';
+      licenseActivationMsg.style.display = 'none';
+      if (licenseKeyInput) licenseKeyInput.value = '';
+    }
+
+    upgradeModal.classList.add('show');
+  }
+
+  function closeUpgradeModal() {
+    if (upgradeModal) {
+      upgradeModal.classList.remove('show');
+    }
+  }
+
+  if (openUpgradeModalBtn) openUpgradeModalBtn.addEventListener('click', openUpgradeModal);
+  if (bannerUpgradeBtn) bannerUpgradeBtn.addEventListener('click', openUpgradeModal);
+  if (tierBadge) tierBadge.addEventListener('click', openUpgradeModal);
+  if (closeUpgradeModalBtn) closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
+
+  // Deactivate License Button (Replaces blocked window.confirm with two-click inline confirmation)
+  if (deactivateLicenseBtn) {
+    let confirmPending = false;
+    let resetTimer = null;
+
+    deactivateLicenseBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+
+      if (!confirmPending) {
+        confirmPending = true;
+        deactivateLicenseBtn.textContent = '⚠️ Click again to confirm deactivation';
+        deactivateLicenseBtn.style.color = '#ef4444';
+        deactivateLicenseBtn.style.borderColor = '#ef4444';
+        deactivateLicenseBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+
+        resetTimer = setTimeout(() => {
+          confirmPending = false;
+          deactivateLicenseBtn.textContent = 'Deactivate on this Device';
+          deactivateLicenseBtn.style.color = '#fb7185';
+          deactivateLicenseBtn.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+          deactivateLicenseBtn.style.background = 'transparent';
+        }, 4000);
+        return;
+      }
+
+      // Confirmed on 2nd click: execute deactivation
+      clearTimeout(resetTimer);
+      confirmPending = false;
+      deactivateLicenseBtn.disabled = true;
+      deactivateLicenseBtn.textContent = 'Deactivating...';
+
+      try {
+        await licensing.deactivateLicense();
+        updateQuotaDisplay();
+        closeUpgradeModal();
+        showToast('✓ License deactivated on this device.');
+      } catch (err) {
+        console.error('Deactivation error:', err);
+        showToast('⚠️ Could not deactivate license.');
+      } finally {
+        deactivateLicenseBtn.disabled = false;
+        deactivateLicenseBtn.textContent = 'Deactivate on this Device';
+        deactivateLicenseBtn.style.color = '#fb7185';
+        deactivateLicenseBtn.style.borderColor = 'rgba(244, 63, 94, 0.3)';
+        deactivateLicenseBtn.style.background = 'transparent';
+      }
+    });
+  }
+
+  // Close modal when clicking backdrop
+  upgradeModal.addEventListener('click', (e) => {
+    if (e.target === upgradeModal) closeUpgradeModal();
+  });
+
+  // Buy $2 Lifetime Button - Opens real payment link in new tab
+  buyLifetimeBtn.addEventListener('click', () => {
+    const config = licensing && licensing.PAYMENT_CONFIG ? licensing.PAYMENT_CONFIG : { checkoutUrl: 'https://gumroad.com/l/promptguard' };
+    
+    // Open payment link (Gumroad, Payhip, or custom checkout)
+    window.open(config.checkoutUrl, '_blank');
+
+    // Guide the user to enter their license key after payment
+    licenseActivationMsg.style.display = 'block';
+    licenseActivationMsg.style.color = '#38bdf8';
+    licenseActivationMsg.innerHTML = '💳 Payment page opened in a new tab.<br>After paying $2, copy the <strong>License Key</strong> from your receipt/email and paste it below:';
+    if (licenseKeyInput) {
+      licenseKeyInput.focus();
+    }
+    showToast('Payment page opened in new tab');
+  });
+
+  // Activate License Key (Handles device limit check & validation)
+  activateLicenseBtn.addEventListener('click', async () => {
+    const key = licenseKeyInput.value.trim();
+    if (!key) {
+      licenseActivationMsg.style.display = 'block';
+      licenseActivationMsg.style.color = '#fb7185';
+      licenseActivationMsg.textContent = 'Please enter a license key.';
+      return;
+    }
+
+    activateLicenseBtn.disabled = true;
+    activateLicenseBtn.textContent = 'Verifying...';
+    licenseActivationMsg.style.display = 'block';
+    licenseActivationMsg.style.color = '#94a3b8';
+    licenseActivationMsg.textContent = 'Verifying key & checking device limit (max 2 devices)...';
+
+    const res = await licensing.activateLicenseKey(key);
+
+    activateLicenseBtn.disabled = false;
+    activateLicenseBtn.textContent = 'Activate';
+
+    if (res.success) {
+      licenseActivationMsg.style.color = '#34d399';
+      licenseActivationMsg.textContent = res.message;
+      updateQuotaDisplay();
+      setTimeout(() => {
+        closeUpgradeModal();
+        showToast('⭐ $2 Lifetime Pro Active!');
+      }, 1000);
+    } else {
+      licenseActivationMsg.style.color = '#fb7185';
+      licenseActivationMsg.textContent = res.message;
+    }
+  });
+
+  // Developer Testing Controls
+  if (testActivateProBtn) {
+    testActivateProBtn.addEventListener('click', () => {
+      licensing.activateLicenseKey('PROGUARD2026');
+      updateQuotaDisplay();
+      showToast('⭐ Test Pro Activated (Unlimited)!');
+    });
+  }
+
+  if (testResetQuotaBtn) {
+    testResetQuotaBtn.addEventListener('click', () => {
+      licensing.revokeLicense();
+      updateQuotaDisplay();
+      showToast('🔄 Reset back to 3/3 Free Tier');
+    });
+  }
+
   // --- STORAGE & VAULT MANAGEMENT ---
   function saveSessionToStorage(rawInput, result) {
     if (typeof chrome === 'undefined' || !chrome.storage) return;
 
-    // 1. Session Storage (in-memory mapping synced across side panel restarts)
     if (chrome.storage.session) {
       chrome.storage.session.set({
         activePromptGuardMapping: result.mapping
       }).catch(err => console.warn('Storage session error:', err));
     }
 
-    // 2. Local Storage Vault (Recent session history with timestamps)
     if (chrome.storage.local) {
       chrome.storage.local.get(['promptGuardVaultHistory'], (data) => {
         const history = data.promptGuardVaultHistory || [];
@@ -346,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
           mapping: result.mapping
         };
 
-        // Keep last 15 sessions max
         history.unshift(sessionRecord);
         if (history.length > 15) history.pop();
 
@@ -411,8 +653,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- RULES & SETTINGS ---
-  // Load saved rules & category toggles
-  function loadSettings() {
+  async function loadSettings() {
+    if (licensing) {
+      await licensing.loadState();
+      updateQuotaDisplay();
+    }
+
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
 
     chrome.storage.local.get(['enabledCategories', 'customRules', 'promptGuardActiveMapping'], (data) => {
@@ -428,7 +674,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCustomRulesList();
       }
 
-      // Check for any active session mapping
       if (chrome.storage.session) {
         chrome.storage.session.get(['activePromptGuardMapping'], (sData) => {
           if (sData && sData.activePromptGuardMapping) {
@@ -453,7 +698,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Add custom regex rule
   addCustomRuleBtn.addEventListener('click', () => {
     const name = customRuleName.value.trim();
     const prefix = customRulePrefix.value.trim();
@@ -465,7 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      new RegExp(pattern); // Test validity
+      new RegExp(pattern);
     } catch (e) {
       showToast('⚠️ Invalid regular expression');
       return;
@@ -529,6 +773,5 @@ document.addEventListener('DOMContentLoaded', () => {
               .replace(/'/g, '&#039;');
   }
 
-  // Initial load
-  loadSettings();
+  await loadSettings();
 });

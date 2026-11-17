@@ -1,6 +1,7 @@
 /**
  * PromptGuard: Modern Dark-Mode CSS Design Tokens & Utilities
  * 100% Local & Offline - Zero External CDN Dependencies
+ * Includes $2 Lifetime Pro Paywall & Quota Tracker
  */
 
 :root {
@@ -20,6 +21,7 @@
   --accent-cyan: #06b6d4;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
+  --accent-gold: #fbbf24;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -61,7 +63,7 @@ body {
 
 /* Header */
 .header {
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -75,54 +77,93 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .brand-icon {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
-  border-radius: 8px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 12px var(--accent-emerald-glow);
+  box-shadow: 0 0 10px var(--accent-emerald-glow);
 }
 
 .brand-title {
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: -0.02em;
   background: linear-gradient(135deg, #ffffff 30%, #a7f3d0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.badge-secure {
+/* Header Tier & Quota Badges */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-tier {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
   border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.badge-tier-free {
   background: rgba(16, 185, 129, 0.12);
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  background: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 6px #10b981;
-  animation: pulse 2s infinite;
+.badge-tier-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+.badge-tier-danger {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.badge-tier-pro {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%);
+  color: #fde047;
+  border-color: rgba(253, 224, 71, 0.4);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
+}
+
+.btn-upgrade-pill {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  transition: all 0.15s ease;
+}
+
+.btn-upgrade-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
 }
 
 /* Nav Tabs */
@@ -175,6 +216,24 @@ body {
 
 .view-pane.active {
   display: flex;
+}
+
+/* Quota Limit Warning Banner */
+.quota-banner {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.quota-banner-text {
+  font-size: 11px;
+  color: #fca5a5;
+  line-height: 1.4;
 }
 
 /* Card Containers */
@@ -311,6 +370,18 @@ body {
   border-color: #f43f5e;
 }
 
+.btn-gold {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.45);
+}
+
 .btn-sm {
   font-size: 11px;
   padding: 4px 8px;
@@ -443,7 +514,133 @@ body {
   opacity: 1;
 }
 
-/* Rule Categories */
+/* Modal Overlay & Paywall Cards */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  z-index: 999;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.95); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+  padding: 14px 16px;
+  background: #1e293b;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-primary);
+  background: #334155;
+}
+
+.modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Pricing Deal Box */
+.deal-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+  border: 2px solid rgba(245, 158, 11, 0.5);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.deal-badge {
+  position: absolute;
+  top: -10px;
+  right: 12px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.deal-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.deal-price {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fde047;
+}
+
+.deal-price-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.deal-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #e2e8f0;
+}
+
+.deal-features li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Category Checkbox Grid */
 .category-checkbox-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
