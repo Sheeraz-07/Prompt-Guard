@@ -1,7 +1,7 @@
 /**
  * PromptGuard: AI Prompt Sanitizer
- * sidepanel/app.js - Side Panel UI Controller, Quota & Payment Integration
- * 3 Free Daily Sanitizations + $2 Lifetime Subscription
+ * sidepanel/app.js - Side Panel UI Controller
+ * Free and unlimited open-source sanitization
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const testActivateProBtn = document.getElementById('testActivateProBtn');
   const testResetQuotaBtn = document.getElementById('testResetQuotaBtn');
 
-  // DOM Elements - Upgrade / Paywall Modal & Views
+  // Legacy account modal elements retained for compatibility with older layouts.
   const upgradeModal = document.getElementById('upgradeModal');
   const modalTitle = document.getElementById('modalTitle');
   const modalFreeView = document.getElementById('modalFreeView');
@@ -100,45 +100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!licensing) return;
     const state = licensing.getState();
 
-    if (state.isPro) {
-      // PRO PLAN: Remove all "Buy Pro" buttons and upgrade prompts!
-      tierBadge.className = 'badge-tier badge-tier-pro';
-      tierBadge.innerHTML = '<span>⭐ PRO Lifetime (Active)</span>';
-      tierBadge.title = 'Pro Lifetime Active. Click to view account & seat details.';
-      
-      // Hide the "Buy Pro / $2 Lifetime" button completely
-      openUpgradeModalBtn.style.display = 'none';
-
-      // Hide any quota warning banner
-      if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
-
-      sanitizeBtnLabel.textContent = 'Sanitize Prompt (Pro Unlimited)';
-    } else {
-      // FREE TIER: Show remaining free credits and upgrade pill
-      const rem = state.remainingToday;
-      openUpgradeModalBtn.style.display = 'inline-flex';
-      openUpgradeModalBtn.textContent = '⭐ $2 Lifetime';
-
-      if (rem > 1) {
-        tierBadge.className = 'badge-tier badge-tier-free';
-        tierBadge.innerHTML = `<span>⚡ ${rem}/3 Free Today</span>`;
-        tierBadge.title = 'Daily free credits reset every midnight. Click to upgrade.';
-        if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
-        sanitizeBtnLabel.textContent = 'Sanitize Prompt';
-      } else if (rem === 1) {
-        tierBadge.className = 'badge-tier badge-tier-warning';
-        tierBadge.innerHTML = `<span>⚡ 1/3 Free Left</span>`;
-        tierBadge.title = '1 credit left today. Resets at midnight.';
-        if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
-        sanitizeBtnLabel.textContent = 'Sanitize (1 Left)';
-      } else {
-        tierBadge.className = 'badge-tier badge-tier-danger';
-        tierBadge.innerHTML = `<span>⚡ 0/3 Free (Upgrade $2)</span>`;
-        tierBadge.title = 'Daily limit reached. Click to get Lifetime Pro for $2.';
-        if (quotaLimitBanner) quotaLimitBanner.style.display = 'flex';
-        sanitizeBtnLabel.textContent = 'Upgrade to Sanitize ($2)';
-      }
-    }
+    tierBadge.className = 'badge-tier badge-tier-pro';
+    tierBadge.innerHTML = '<span>🛡️ Free &amp; Unlimited</span>';
+    tierBadge.title = 'PromptGuard is free and open source.';
+    if (openUpgradeModalBtn) openUpgradeModalBtn.style.display = 'none';
+    if (quotaLimitBanner) quotaLimitBanner.style.display = 'none';
+    sanitizeBtnLabel.textContent = 'Sanitize Prompt';
   }
 
   // --- TAB NAVIGATION ---
@@ -188,20 +155,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // 1. Quota Check: 3 Free per day or Lifetime Pro
-    if (licensing && !licensing.canSanitize()) {
-      openUpgradeModal();
-      showToast('⚠️ Daily limit reached (3/3). Get Lifetime Pro for $2!');
-      return;
-    }
-
-    // 2. Consume credit
+    // Keep the compatibility API in sync for older stored state.
     if (licensing) {
-      const creditRes = licensing.consumeCredit();
-      if (!creditRes.allowed) {
-        openUpgradeModal();
-        return;
-      }
+      licensing.consumeCredit();
       updateQuotaDisplay();
     }
 
@@ -230,12 +186,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Save to storage
     saveSessionToStorage(rawText, result);
 
-    const state = licensing ? licensing.getState() : null;
-    if (state && !state.isPro) {
-      showToast(`✓ Sanitized ${result.stats.totalThreats} threats! (${state.remainingToday} free left today)`);
-    } else {
-      showToast(`✓ Sanitized ${result.stats.totalThreats} threats (Pro Unlimited)!`);
-    }
+    showToast(`✓ Sanitized ${result.stats.totalThreats} threats (free and unlimited)!`);
   }
 
   sanitizeBtn.addEventListener('click', runSanitization);
@@ -440,7 +391,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (openUpgradeModalBtn) openUpgradeModalBtn.addEventListener('click', openUpgradeModal);
   if (bannerUpgradeBtn) bannerUpgradeBtn.addEventListener('click', openUpgradeModal);
-  if (tierBadge) tierBadge.addEventListener('click', openUpgradeModal);
   if (closeUpgradeModalBtn) closeUpgradeModalBtn.addEventListener('click', closeUpgradeModal);
 
   // Deactivate License Button (Replaces blocked window.confirm with two-click inline confirmation)
@@ -497,21 +447,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target === upgradeModal) closeUpgradeModal();
   });
 
-  // Buy $2 Lifetime Button - Opens real payment link in new tab
+  // Legacy payment controls are intentionally inert in the free open-source build.
   buyLifetimeBtn.addEventListener('click', () => {
-    const config = licensing && licensing.PAYMENT_CONFIG ? licensing.PAYMENT_CONFIG : { checkoutUrl: 'https://gumroad.com/l/promptguard' };
-    
-    // Open payment link (Gumroad, Payhip, or custom checkout)
-    window.open(config.checkoutUrl, '_blank');
-
-    // Guide the user to enter their license key after payment
     licenseActivationMsg.style.display = 'block';
-    licenseActivationMsg.style.color = '#38bdf8';
-    licenseActivationMsg.innerHTML = '💳 Payment page opened in a new tab.<br>After paying $2, copy the <strong>License Key</strong> from your receipt/email and paste it below:';
-    if (licenseKeyInput) {
-      licenseKeyInput.focus();
-    }
-    showToast('Payment page opened in new tab');
+    licenseActivationMsg.style.color = '#34d399';
+    licenseActivationMsg.textContent = 'PromptGuard is free and unlimited. No license key is required.';
   });
 
   // Activate License Key (Handles device limit check & validation)
@@ -541,7 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateQuotaDisplay();
       setTimeout(() => {
         closeUpgradeModal();
-        showToast('⭐ $2 Lifetime Pro Active!');
+        showToast('✓ PromptGuard is already free and unlimited!');
       }, 1000);
     } else {
       licenseActivationMsg.style.color = '#fb7185';
@@ -562,7 +502,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     testResetQuotaBtn.addEventListener('click', () => {
       licensing.revokeLicense();
       updateQuotaDisplay();
-      showToast('🔄 Reset back to 3/3 Free Tier');
+      showToast('🔄 Free and unlimited access restored');
     });
   }
 

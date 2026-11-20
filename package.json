@@ -1,0 +1,10 @@
+{
+  "name": "prompt-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Free, local-first Chrome extension for sanitizing secrets and PII before prompting AI.",
+  "scripts": {
+    "test": "node tests/sanitizer.test.js && node tests/licensing.test.js"
+  },
+  "license": "MIT"
+}

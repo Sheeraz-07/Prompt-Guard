@@ -22,14 +22,12 @@
       </div>
     </div>
     
-    <!-- Quota / Tier Badge & Upgrade Action -->
+    <!-- Open-source status -->
     <div class="header-actions">
-      <div id="tierBadge" class="badge-tier badge-tier-free" title="Daily free credits reset every midnight">
-        <span>⚡ 3/3 Free Today</span>
+      <div id="tierBadge" class="badge-tier badge-tier-pro" title="PromptGuard is free and open source">
+        <span>🛡️ Free &amp; Unlimited</span>
       </div>
-      <button id="openUpgradeModalBtn" class="btn-upgrade-pill" title="Unlock Unlimited Sanitizations for $2 Lifetime">
-        ⭐ $2 Lifetime
-      </button>
+      <button id="openUpgradeModalBtn" class="btn-upgrade-pill" style="display: none;" aria-hidden="true">Open</button>
     </div>
   </header>
 
@@ -72,14 +70,7 @@
     <!-- 1. SANITIZE PANE -->
     <section id="tab-sanitize" class="view-pane active">
 
-      <!-- Quota Limit Warning Banner (Visible when credits = 0) -->
-      <div id="quotaLimitBanner" class="quota-banner" style="display: none;">
-        <div class="quota-banner-text">
-          <strong>Daily Free Limit Reached (3/3 used)</strong><br>
-          Resets at midnight or upgrade to <strong>$2 Lifetime Pro</strong> for unlimited sanitizations.
-        </div>
-        <button id="bannerUpgradeBtn" class="btn btn-gold btn-sm">Upgrade $2</button>
-      </div>
+      <div id="quotaLimitBanner" class="quota-banner" style="display: none;" aria-hidden="true"></div>
 
       <!-- Configuration Card -->
       <div class="controls-row">

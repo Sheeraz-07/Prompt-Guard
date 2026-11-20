@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest an improvement to PromptGuard.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy and permission impact
+      description: Explain whether the change needs new permissions or external services.
+    validations:
+      required: true

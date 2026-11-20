@@ -1,8 +1,8 @@
 /**
  * PromptGuard: AI PII & Secret Sanitizer
- * utils/licensing.js - Quota & Payment Engine
- * 3 Free Daily Sanitizations + $2 Lifetime Subscription
- * Supports Machine Fingerprinting (Unlimited Chrome Profiles per PC, Max 2 PCs)
+ * utils/licensing.js - Open-source access compatibility API
+ * PromptGuard is free and unlimited. The API remains for backwards compatibility
+ * with existing extension state and integrations.
  */
 
 (function (root, factory) {
@@ -16,21 +16,14 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const MAX_FREE_DAILY = 3;
+  const MAX_FREE_DAILY = Infinity;
   const STORAGE_KEY = 'promptGuardLicenseState';
 
-  const PAYMENT_CONFIG = {
-    provider: 'gumroad',
-    productName: 'PromptGuard Pro Lifetime',
-    priceUSD: 2,
-    maxDevices: 2,
-    productPermalink: 'promptguard',
-    checkoutUrl: 'https://gumroad.com/l/promptguard'
-  };
+  const PAYMENT_CONFIG = null;
 
   // In-memory fallback state
   let localState = {
-    isPro: false,
+    isPro: true,
     licenseKey: null,
     dateKey: getLocalDateKey(),
     usedToday: 0,
@@ -86,6 +79,7 @@
           if (res && res[STORAGE_KEY]) {
             localState = { ...localState, ...res[STORAGE_KEY] };
           }
+          localState.isPro = true;
           checkAndResetDailyQuota(Date.now());
           resolve(getState());
         });
@@ -158,13 +152,13 @@
    */
   function getState() {
     checkAndResetDailyQuota(Date.now());
-    const remainingToday = localState.isPro ? Infinity : Math.max(0, MAX_FREE_DAILY - localState.usedToday);
+    const remainingToday = Infinity;
 
     return {
       isPro: !!localState.isPro,
       licenseKey: localState.licenseKey,
       maskedKey: maskLicenseKey(localState.licenseKey),
-      maxDaily: MAX_FREE_DAILY,
+      maxDaily: Infinity,
       usedToday: localState.usedToday,
       remainingToday,
       dateKey: localState.dateKey,
@@ -184,7 +178,7 @@
    */
   function canSanitize() {
     const state = getState();
-    return state.isPro || state.remainingToday > 0;
+    return true;
   }
 
   /**
@@ -193,136 +187,32 @@
   function consumeCredit(customTimestamp = Date.now()) {
     checkAndResetDailyQuota(customTimestamp);
 
-    if (localState.isPro) {
-      return {
-        allowed: true,
-        isPro: true,
-        remaining: Infinity
-      };
-    }
-
-    if (localState.usedToday >= MAX_FREE_DAILY) {
-      return {
-        allowed: false,
-        isPro: false,
-        remaining: 0,
-        reason: 'daily_quota_exceeded'
-      };
-    }
-
-    localState.usedToday += 1;
+    localState.isPro = true;
     localState.lastRecordedTimestamp = customTimestamp;
     saveState();
 
     return {
       allowed: true,
-      isPro: false,
-      remaining: Math.max(0, MAX_FREE_DAILY - localState.usedToday)
+      isPro: true,
+      remaining: Infinity
     };
   }
 
   /**
-   * Validates and activates a Pro License Key ($2 Lifetime Subscription).
-   * Supports 2 physical PCs (with unlimited Chrome profiles on each PC via machineId).
+   * Legacy compatibility method. No license is required in the open-source build.
    */
   async function activateLicenseKey(key) {
-    if (!key || typeof key !== 'string') {
-      return { success: false, message: 'Please enter a license key.' };
-    }
-
-    const trimmed = key.trim().toUpperCase();
-    const machineId = localState.machineId || generateMachineFingerprint();
-
-    // 1. Developer Test Keys
-    const isTestKey =
-      trimmed === 'PROGUARD2026' ||
-      trimmed === 'LIFETIME2' ||
-      trimmed === 'TEST-PRO-2USD';
-
-    if (isTestKey) {
-      localState.isPro = true;
-      localState.licenseKey = trimmed;
-      localState.lastRecordedTimestamp = Date.now();
-      await saveState();
-      return {
-        success: true,
-        message: '⭐ Developer test key activated (Unlimited access)!'
-      };
-    }
-
-    // 2. Official Gumroad Verification with Machine Fingerprint
-    const isGumroadFormat =
-      /^[A-Z0-9]{8}-[A-Z0-9]{8}-[A-Z0-9]{8}-[A-Z0-9]{8}$/.test(trimmed) ||
-      /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(trimmed);
-
-    if (isGumroadFormat && PAYMENT_CONFIG.productPermalink && typeof fetch !== 'undefined') {
-      try {
-        const response = await fetch('https://api.gumroad.com/v2/licenses/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: new URLSearchParams({
-            product_permalink: PAYMENT_CONFIG.productPermalink,
-            license_key: trimmed,
-            increment_uses_count: 'true'
-          })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          if (data.purchase && (data.purchase.refunded || data.purchase.chargebacked)) {
-            return {
-              success: false,
-              message: 'This license key has been refunded or revoked.'
-            };
-          }
-
-          localState.isPro = true;
-          localState.licenseKey = trimmed;
-          localState.lastRecordedTimestamp = Date.now();
-          await saveState();
-
-          return {
-            success: true,
-            message: `⭐ Verified! Machine [${machineId}] registered. (Usable on all Chrome profiles on this PC & 1 other PC).`
-          };
-        } else {
-          return {
-            success: false,
-            message: data.message || 'Verification failed. Maximum machine limit (2 PCs) reached for this key.'
-          };
-        }
-      } catch (networkErr) {
-        console.warn('Gumroad API verification failed:', networkErr);
-      }
-    }
-
-    // 3. PromptGuard Offline Format fallback (for manual PG-PRO keys)
-    const isPromptGuardKey = trimmed.startsWith('PG-PRO-') && trimmed.length >= 12;
-    if (isPromptGuardKey) {
-      localState.isPro = true;
-      localState.licenseKey = trimmed;
-      localState.lastRecordedTimestamp = Date.now();
-      await saveState();
-      return {
-        success: true,
-        message: `⭐ License activated! Machine [${machineId}] registered.`
-      };
-    }
-
-    return {
-      success: false,
-      message: 'Invalid license key format. Check your receipt email or use PROGUARD2026 for testing.'
-    };
+    localState.isPro = true;
+    localState.licenseKey = null;
+    await saveState();
+    return { success: true, message: 'PromptGuard is already free and unlimited.' };
   }
 
   /**
    * Deactivates/transfers license from this browser/profile
    */
   async function deactivateLicense() {
-    localState.isPro = false;
+    localState.isPro = true;
     localState.licenseKey = null;
     localState.usedToday = 0;
     localState.dateKey = getLocalDateKey();

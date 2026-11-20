@@ -2,7 +2,8 @@
   "manifest_version": 3,
   "name": "PromptGuard: AI Prompt Sanitizer",
   "version": "1.0.0",
-  "description": "Local-first Chrome Side Panel to sanitize sensitive secrets, API keys, and PII before prompting AI.",
+  "description": "Free, local-first Chrome side panel that removes API keys, secrets, credentials, and PII before you prompt AI.",
+  "homepage_url": "https://github.com/Sheeraz-07/Prompt-Guard",
   "permissions": [
     "storage",
     "sidePanel",
